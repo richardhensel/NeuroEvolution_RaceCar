@@ -1,98 +1,111 @@
-import os, sys, math, pygame, pygame.mixer
-import random
+import math, pygame, pygame.mixer
 import euclid
 from pygame.locals import *
-
 
 class Car():
 
     def __init__(self, position, orientation):
 
-        self.position = position # location vector 
-        self.orientation = orientation # orientation vector unit vector centered at the car's origin. 
-        self.velocity = 0.0 # rate of change of positon in direction of travel ms-1
-        self.accel = 30.0 #Rate of change of velocity ms-2
-        self.steering =  0.0005 #rate of change of yaw radm-2 -ve left, +ve right
+        # Dynamics
+        self.position = position  # location vectors
+        self.prev_position = position 
+        self.orientation = orientation  # orientation vector unit vector centered at the car's origin. 
+        self.velocity = 0.0             # rate of change of positon in direction of travel ms-1
+        self.accel = 0.0               #Rate of change of velocity ms-2
+        self.steering =  0.0         #rate of change of yaw radm-2 -ve left, +ve right
 
-        self.length = 30
-        self.width = 20
-        self.color = 0,0,0 #black
-        self.line_width = 3
+        #Drag parameters
         self.steeringDrag = 0.3
         self.rollingDrag = 0.1
 
+        # Trip metrics
+        self.dist_travelled = 0.0       # total distance travelled
+        self.avg_velocity = 0.0         # average velocity for the trip
+        self.crashed = False            # did the car crash into an obstacle?
+
+        #Define the car geometry
+        self.origin_dist = 0.25 * self.length #Origin is 1 quarter of the length from the rear of the car
+        self.length = 30
+        self.width = 20
+        self.color = 0,0,0              #black
+        self.line_width = 3
+
+        #Define the sensor array
+        self.sensor_origin_dist = 0.5
+        self.sensor_length = 300.0
+        self.num_sensors = 8
+
+
+        #Set up NN
+    
+
+    #Geometry points
+    def rear_left(self):
+        return self.position + self.orientation.rotate_around( euclid.Vector3(0.,0.,1.), -0.5*math.pi)* self.width/2 - self.orientation * self.origin_dist
+
+    def rear_right(self):
+        return self.position + self.orientation.rotate_around( euclid.Vector3(0.,0.,1.), 0.5*math.pi)* self.width/2  - self.orientation * self.origin_dist
+
+    def front_left(self):
+        return self.rear_left() + self.orientation * self.length
+
+    def front_right(self):
+        return self.rear_right() + self.orientation * self.length
+
+    def sensor_origin(self):
+        return self.position + self.sensor_origin_dist * self.length * self.orientation # sensor origin is 1 quarter of the length from the front of the car
+
+    def sensor_vectors(self):
+        angle = math.pi / (self.num_sensors+1)
+        vectors = []
+        count = 1
+        for i in range(0,self.num_sensors):
+            p1 = self.sensor_origin()
+            # sensor vector is count*angle radians from the right of the car, with an origin at sensor origin and a length of sensor_length 
+            p2 = self.sensor_origin() + self.orientation.rotate_around(euclid.Vector3(0.,0.,1.), 0.5*math.pi - count * angle) * self.sensor_length
+            vectors.append((p1,p2)) 
+            count +=1
+        return vectors
+
+
     def move(self, time_delta):
+        self.prev_position = self.position.copy()
+
         self.position += self.velocity * self.orientation * time_delta + 0.5 * (self.accel * self.orientation * (time_delta**2))
         self.velocity += self.accel * time_delta
         self.velocity -= self.velocity * self.rollingDrag * time_delta
         self.velocity -= abs(self.steering) * self.velocity * self.steeringDrag * time_delta
         self.orientation = self.orientation.rotate_around(euclid.Vector3(0.,0.,1.),self.steering * self.velocity)
+       
+        self.dist_travelled += abs(self.position - self.prev_position)/1000.0
+
+#    def sensor_intersect(self, obstacle):
+        #Find the shortest distance to obstacle for each of the sensors
+
+#    def detect_collision(self, obstacle):
+        #Test for collision between the obstacle and each of the corners/lines of the car
+        #self.crashed = True
 
     def display(self, screen_handle):
         rx, ry = int(self.position.x), int(self.position.y)
-        #pygame.draw.rect(screen_handle, self.color, (rx,ry, self.width, self.length), self.line_width)
 
-        #get vector position of each of the corners.
-        rear_left = self.position + self.orientation.rotate_around( euclid.Vector3(0.,0.,1.), -0.5*math.pi)* self.width/2 - self.orientation * 0.3*self.length
-        rear_right = self.position + self.orientation.rotate_around( euclid.Vector3(0.,0.,1.), 0.5*math.pi)* self.width/2  - self.orientation * 0.3*self.length
-        front_left = rear_left + self.orientation * self.length
-        front_right = rear_right + self.orientation * self.length
-        point_list = [(rear_left.x, rear_left.y), (front_left.x, front_left.y), (front_right.x, front_right.y), (rear_right.x, rear_right.y)]
-
+        #Draw car
+        point_list = [(self.rear_left().x, self.rear_left().y), (self.front_left().x, self.front_left().y), (self.front_right().x, self.front_right().y), (self.rear_right().x, self.rear_right().y)]
         pygame.draw.lines(screen_handle, self.color, True, point_list, self.line_width)
+
+        #Draw origin
         pygame.draw.circle(screen_handle, (255,0,0), (rx,ry), 2, 0)
+        #Draw sensor origin
+        pygame.draw.circle(screen_handle, (0,0,255), (int(self.sensor_origin().x), int(self.sensor_origin().y)), 2, 0)
+
+        #Draw sensor vectors
+        sensor_vectors = self.sensor_vectors()
+        for line in sensor_vectors:
+            point_list = [(line[0].x, line[0].y),(line[1].x, line[1].y)]
+            pygame.draw.lines(screen_handle, (0,0,255), False, point_list, 1)    
 
 
     def control(self, acceleration, steering):
-        self.accel = acceleration
-        self.steering = steering
-
-
-
-    
-
-
-
-black = 0,0,0
-white = 255,255,255
-red = 255, 0, 0
-green = 0, 255, 0
-blue = 0, 0, 255
-
-colors = [black,red,green,blue]
-
-screenSize = screenWidth, screenHeight = 600, 400
-
-# Set the screen size
-screen = pygame.display.set_mode(screenSize)
-
-clock = pygame.time.Clock()
-fpsLimit = 60
-runMe = True
-
-car = Car(euclid.Vector3(300., 200., 0.), euclid.Vector3(1.,0., 0.))
-
-
-while runMe:
-
-    #get user input
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            runMe = False
-
-    #Limit the framerate
-    dtime_ms = clock.tick(fpsLimit)
-    dtime = dtime_ms/1000.0
-
-    screen.fill(white)
-
-    car.move(dtime)
-    car.display(screen)
-
-    screen.unlock()
-
-    pygame.display.flip()
-
-pygame.quit()
-sys.exit()
-         
+        if self.crashed == False:
+            self.accel = acceleration
+            self.steering = steering

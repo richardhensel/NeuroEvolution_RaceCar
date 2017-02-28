@@ -46,7 +46,10 @@ runMe = True
 
 car = Car(euclid.Vector3(300., 200., 0.), euclid.Vector3(1.,0., 0.))
 
-car.control(30.0, 0.00005)
+obstacle1 = [(400,100), (400, 300), (500, 200)]
+obstacle2 = [(500,500), (900, 500), (400, 700)]
+
+car.control(30.0, 0.0001)
 
 while runMe:
 
@@ -61,8 +64,17 @@ while runMe:
 
     screen.fill(white)
 
+    #draw obstacles
+    pygame.draw.lines(screen, (0,0,0), True, obstacle1, 5)
+    pygame.draw.lines(screen, (0,0,0), True, obstacle2, 5)
+
     car.move(dtime)
+    car.sense(obstacle1)
+    car.sense(obstacle2)
+    car.detect_collision(obstacle1)
+    car.detect_collision(obstacle2)
     car.display(screen)
+    car.reset_sensors()
 
     screen.unlock()
 

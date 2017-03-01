@@ -194,8 +194,10 @@ class Car():
                     return 0
                     
     def __detect_finish_line(self, finish_line):
-        p1 = (self.front_left.x, self.front_left.y)
-        p2 = (self.front_right.x, self.front_right.y)
+
+        finish_bar = self.sensor_origin + self.orientation * 5.0
+        p1 = (self.sensor_origin.x, self.sensor_origin.y)
+        p2 = (finish_bar.x, finish_bar.y)
 
         for j in range(0,len(finish_line)):
             if j ==0:

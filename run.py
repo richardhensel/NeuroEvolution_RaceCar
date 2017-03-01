@@ -34,7 +34,7 @@ car_y = 80.0
 while runMe:
 
     car = Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(1.,0., 0.))
-    finish_line = [(car_x+3, car_y - 100), (car_x, car_y + 100)]
+    finish_line = [(car_x-10.0, car_y - 100), (car_x-10.0, car_y + 100)]
    ## NEEDED TO TRACE A LINE ON SCREEN
    # points = []
    # pos = car.position
@@ -80,10 +80,10 @@ while runMe:
         car.display(screen, screenSize)
         screen_offset = car.screen_offset_vec
         #draw obstacles
-        all_obs = obstacles[:]
-        all_obs.append(finish_line)
+        #all_obs = obstacles[:]
+        #all_obs.append(finish_line)
         obs = []
-        for obstacle in all_obs:
+        for obstacle in obstacles:
             ob = []
             for point in obstacle:
                 point_vec = euclid.Vector3(point[0], point[1]) + screen_offset

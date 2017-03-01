@@ -27,6 +27,7 @@ class Car():
         self.total_time = 0.0
         self.avg_velocity = 0.0         # average velocity for the trip
         self.crashed = False            # did the car crash into an obstacle?
+        self.finished = False            # did the car crash into an obstacle?
 
         #Define the car geometry
         self.length = 30
@@ -41,6 +42,8 @@ class Car():
         self.num_sensors = 8
         self.sensor_measurements = [self.max_sensor_length] * self.num_sensors
 
+        self.screen_offset_vec = euclid.Vector3(0.0, 0.0, 0.0)
+
         #Set up NN
 
     def control(self, acceleration, steering_rate):
@@ -48,7 +51,7 @@ class Car():
             self.accel = acceleration
             self.steering_rate = steering_rate
 
-    def update(self, time_delta, obstacles):
+    def update(self, time_delta, obstacles, finish_line):
         self.__reset_sensors()
         self.__update_dynamics(time_delta)
         self.__update_geometry()
@@ -56,22 +59,42 @@ class Car():
         for obstacle in obstacles:
             self.__sense(obstacle)
             self.__detect_collision(obstacle)
+        self.__detect_finish_line(finish_line)
 
-    def display(self, screen_handle):
-        rx, ry = int(self.position.x), int(self.position.y)
+    def display(self, screen_handle, screen_size):
+        #Compute offsets
+        screen_vec = euclid.Vector3(screen_size[0], screen_size[1], 0.0)
+        self.screen_offset_vec = 0.5 * screen_vec - self.position
+
+        pos = self.position + self.screen_offset_vec
+
+        rl = self.rear_left + self.screen_offset_vec
+        fl = self.front_left + self.screen_offset_vec
+        fr = self.front_right + self.screen_offset_vec
+        rr = self.rear_right + self.screen_offset_vec
+        
+        so = self.sensor_origin + self.screen_offset_vec
+    
+        sensor_vectors = self.__get_sensor_vectors(self.sensor_measurements)
+        sv = []
+        for line in sensor_vectors:
+            sv.append((line[0]+self.screen_offset_vec, line[1]+self.screen_offset_vec))
 
         #Draw car
-        point_list = [(self.rear_left.x, self.rear_left.y), (self.front_left.x, self.front_left.y), (self.front_right.x, self.front_right.y), (self.rear_right.x, self.rear_right.y)]
+        #point_list = [(self.rear_left.x, self.rear_left.y), (self.front_left.x, self.front_left.y), (self.front_right.x, self.front_right.y), (self.rear_right.x, self.rear_right.y)]
+
+
+        #Draw the offset points
+        point_list = [(rl.x, rl.y), (fl.x, fl.y), (fr.x, fr.y), (rr.x, rr.y)]
         pygame.draw.lines(screen_handle, self.color, True, point_list, self.line_width)
 
         #Draw origin
-        pygame.draw.circle(screen_handle, (255,0,0), (rx,ry), 2, 0)
+        pygame.draw.circle(screen_handle, (255,0,0), (int(pos.x),int(pos.y)), 2, 0)
         #Draw sensor origin
-        pygame.draw.circle(screen_handle, (0,0,255), (int(self.sensor_origin.x), int(self.sensor_origin.y)), 2, 0)
+        pygame.draw.circle(screen_handle, (0,0,255), (int(so.x), int(so.y)), 2, 0)
 
         #Draw sensor vectors
-        sensor_vectors = self.__get_sensor_vectors(self.sensor_measurements)
-        for line in sensor_vectors:
+        for line in sv:
             point_list = [(line[0].x, line[0].y),(line[1].x, line[1].y)]
             pygame.draw.lines(screen_handle, (0,0,255), False, point_list, 1)
 
@@ -170,6 +193,22 @@ class Car():
                     self.crashed = True
                     return 0
                     
+    def __detect_finish_line(self, finish_line):
+        p1 = (self.front_left.x, self.front_left.y)
+        p2 = (self.front_right.x, self.front_right.y)
+
+        for j in range(0,len(finish_line)):
+            if j ==0:
+                p3 = finish_line[-1]
+            else:
+                p3 = finish_line[j-1]
+            p4 = finish_line[j]
+           
+            #Get intersection point in global frame
+            ix, iy = self.__get_line_intersection(p1, p2, p3, p4)
+            if ix != None or iy != None:
+                self.finished = True
+                return 0
         
         #Test for collision between the obstacle and each of the corners/lines of the car
         #self.crashed = True

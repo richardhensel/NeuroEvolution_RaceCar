@@ -7,7 +7,7 @@ from pygame.key import *
 from Car import Car
 
 
-screenSize = screenWidth, screenHeight = 2000, 1200
+screenSize = screenWidth, screenHeight = 1000, 700
 
 # Set the screen size
 screen = pygame.display.set_mode(screenSize)
@@ -20,6 +20,7 @@ left_barrier = [(980, 20), (1000.0, 20.0), (980, 20), (980, 20), (980, 20), (980
 
 right_barrier = [(980, 120), (1000.0, 120.0), (980, 120), (984, 120), (1002, 120), (1028, 119), (1068, 120), (1122, 122), (1186, 123), (1250, 126), (1309, 136), (1363, 156), (1414, 170), (1466, 168), (1514, 166), (1560, 172), (1598, 196), (1623, 232), (1632, 271), (1625, 308), (1611, 341), (1599, 372), (1592, 406), (1592, 439), (1599, 471), (1612, 498), (1629, 522), (1645, 545), (1658, 567), (1675, 585), (1692, 602), (1705, 622), (1714, 650), (1716, 679), (1710, 707), (1695, 734), (1673, 755), (1653, 777), (1638, 802), (1624, 828), (1610, 856), (1594, 887), (1570, 917), (1537, 937), (1498, 953), (1458, 957), (1419, 951), (1384, 930), (1357, 901), (1339, 866), (1328, 827), (1318, 789), (1305, 754), (1294, 719), (1278, 683), (1260, 649), (1241, 613), (1223, 578), (1203, 541), (1182, 505), (1159, 470), (1138, 437), (1114, 406), (1089, 380), (1067, 353), (1043, 331), (1013, 314), (981, 304), (946, 304), (912, 312), (879, 326), (851, 347), (833, 374), (820, 402), (802, 425), (780, 443), (755, 462), (728, 478), (701, 498), (674, 519), (649, 541), (628, 569), (606, 599), (585, 627), (563, 655), (541, 688), (518, 720), (490, 751), (457, 781), (417, 804), (372, 811), (329, 805), (291, 791), (257, 771), (232, 743), (219, 707), (216, 669), (219, 631), (224, 593), (227, 556), (228, 519), (233, 480), (247, 443), (269, 409), (298, 382), (331, 366), (365, 356), (399, 353), (430, 346), (457, 332), (477, 311), (493, 288), (500, 263), (505, 239), (511, 216), (520, 195), (537, 174), (559, 156), (587, 145), (618, 140), (650, 137), (684, 138), (719, 135), (754, 129), (792, 124), (827, 118), (861, 113), (893, 111), (924, 112)]
 
+obstacles = [left_barrier,right_barrier]
 max_accel = 60
 max_steering_rate = 0.0005
 
@@ -27,12 +28,13 @@ clock_tick = 0.5
 timer = 0.0
 old_timer = 0.0
 
-car_x = screenWidth/2.0
+car_x = 1000.0
 car_y = 80.0
 
 while runMe:
 
-    car = Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(-1.,0., 0.))
+    car = Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(1.,0., 0.))
+    finish_line = [(car_x+3, car_y - 100), (car_x, car_y + 100)]
    ## NEEDED TO TRACE A LINE ON SCREEN
    # points = []
    # pos = car.position
@@ -71,14 +73,23 @@ while runMe:
 
         screen.fill((255,255,255))
 
-        obstacles = [left_barrier,right_barrier]
 
+
+        car.update(dtime, obstacles, finish_line)
+
+        car.display(screen, screenSize)
+        screen_offset = car.screen_offset_vec
         #draw obstacles
-        for obstacle in obstacles:
-            pygame.draw.lines(screen, (0,0,0), True, obstacle, 5)
-
-        car.update(dtime, obstacles)
-        car.display(screen)
+        all_obs = obstacles[:]
+        all_obs.append(finish_line)
+        obs = []
+        for obstacle in all_obs:
+            ob = []
+            for point in obstacle:
+                point_vec = euclid.Vector3(point[0], point[1]) + screen_offset
+                ob.append((point_vec.x, point_vec.y))
+            obs.append(ob)
+            pygame.draw.lines(screen, (0,0,0), True, ob, 5)
 
         ## NEEDED TO TRACE A LINE ON SCREEN
        # timer += dtime
@@ -94,6 +105,9 @@ while runMe:
 
         screen.unlock()
         pygame.display.flip()
+        if car.finished==True:
+            print 'finished. Time = ', car.total_time, 'velocity = ', car.avg_velocity
+            break
         ## NEEDED TO TRACE A LINE ON SCREEN
     #print points
 pygame.quit()

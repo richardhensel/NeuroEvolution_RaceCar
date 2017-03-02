@@ -4,6 +4,7 @@ import euclid
 from pygame.locals import *
 from pygame.key import *
 
+import csv  
 from Car import Car
 
 
@@ -21,7 +22,7 @@ left_barrier = [(980, 20), (1000.0, 20.0), (980, 20), (980, 20), (980, 20), (980
 right_barrier = [(980, 120), (1000.0, 120.0), (980, 120), (984, 120), (1002, 120), (1028, 119), (1068, 120), (1122, 122), (1186, 123), (1250, 126), (1309, 136), (1363, 156), (1414, 170), (1466, 168), (1514, 166), (1560, 172), (1598, 196), (1623, 232), (1632, 271), (1625, 308), (1611, 341), (1599, 372), (1592, 406), (1592, 439), (1599, 471), (1612, 498), (1629, 522), (1645, 545), (1658, 567), (1675, 585), (1692, 602), (1705, 622), (1714, 650), (1716, 679), (1710, 707), (1695, 734), (1673, 755), (1653, 777), (1638, 802), (1624, 828), (1610, 856), (1594, 887), (1570, 917), (1537, 937), (1498, 953), (1458, 957), (1419, 951), (1384, 930), (1357, 901), (1339, 866), (1328, 827), (1318, 789), (1305, 754), (1294, 719), (1278, 683), (1260, 649), (1241, 613), (1223, 578), (1203, 541), (1182, 505), (1159, 470), (1138, 437), (1114, 406), (1089, 380), (1067, 353), (1043, 331), (1013, 314), (981, 304), (946, 304), (912, 312), (879, 326), (851, 347), (833, 374), (820, 402), (802, 425), (780, 443), (755, 462), (728, 478), (701, 498), (674, 519), (649, 541), (628, 569), (606, 599), (585, 627), (563, 655), (541, 688), (518, 720), (490, 751), (457, 781), (417, 804), (372, 811), (329, 805), (291, 791), (257, 771), (232, 743), (219, 707), (216, 669), (219, 631), (224, 593), (227, 556), (228, 519), (233, 480), (247, 443), (269, 409), (298, 382), (331, 366), (365, 356), (399, 353), (430, 346), (457, 332), (477, 311), (493, 288), (500, 263), (505, 239), (511, 216), (520, 195), (537, 174), (559, 156), (587, 145), (618, 140), (650, 137), (684, 138), (719, 135), (754, 129), (792, 124), (827, 118), (861, 113), (893, 111), (924, 112)]
 
 obstacles = [left_barrier,right_barrier]
-max_accel = 60
+max_accel = 60.0
 max_steering_rate = 0.0005
 
 clock_tick = 0.5
@@ -30,10 +31,12 @@ old_timer = 0.0
 
 car_x = 1000.0
 car_y = 80.0
+training_data = 'training_data.csv'
 
 while runMe:
 
     car = Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(1.,0., 0.))
+    car.control(60.0, 0.0)
     finish_line = [(car_x-10.0, car_y - 100), (car_x-10.0, car_y + 100)]
    ## NEEDED TO TRACE A LINE ON SCREEN
    # points = []
@@ -43,7 +46,7 @@ while runMe:
    # points.append((int(pos_behind.x), int(pos_behind.y)))
    # points.append((car_x, car_y))
 
-    while car.crashed == False and runMe == True:
+    while runMe == True:
 
         #get user input
         for event in pygame.event.get():
@@ -69,11 +72,13 @@ while runMe:
             accel = max_accel
         elif keys[pygame.K_DOWN] ==True:
             accel = -1*max_accel
-        car.control(accel, steering_rate)
+
+        car.accel_rate = accel
+        car.steering_rate = steering_rate
+
+        #car.control(accel, steering)
 
         screen.fill((255,255,255))
-
-
 
         car.update(dtime, obstacles, finish_line)
 
@@ -106,7 +111,17 @@ while runMe:
         screen.unlock()
         pygame.display.flip()
         if car.finished==True:
-            print 'finished. Time = ', car.total_time, 'velocity = ', car.avg_velocity
+            print 'FINISHED! Distance = ', car.dist_travelled,  ' Time = ', car.total_time, 'velocity = ', car.avg_velocity
+ 
+            #Write data set to csv
+            with open(training_data, 'a') as f:
+                writer = csv.writer(f)
+                for line in car.data_log:
+                    writer.writerow(line)
+    
+            break
+        if car.crashed==True:
+            print 'CRASHED! Distance = ', car.dist_travelled,  ' Time = ', car.total_time, 'velocity = ', car.avg_velocity
             break
         ## NEEDED TO TRACE A LINE ON SCREEN
     #print points

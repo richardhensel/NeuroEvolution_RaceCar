@@ -14,8 +14,11 @@ class Car():
         self.orientation = orientation  # orientation vector unit vector centered at the car's origin. 
         self.velocity = 0.0             # rate of change of positon in direction of travel ms-1
         self.accel = 0.0               #Rate of change of velocity ms-2
-        self.steering =  0.0         #rate of change of yaw radm-2 -ve left, +ve right
-        self.steering_rate =  0.0         #rate of change of yaw radm-2 -ve left, +ve right
+        self.accel_rate = 0.0           #Rate of change of accel ms-3
+        self.max_accel = 60.0     
+
+        self.steering =  0.0         #rate of change of yaw with respect to velocity  -ve left, +ve right
+        self.steering_rate =  0.0         #rate of change of steering radm-2 -ve left, +ve right
         self.max_steering = 0.00015
     
         #Drag parameters
@@ -40,16 +43,18 @@ class Car():
         self.sensor_origin_dist = 0.5
         self.max_sensor_length = 500.0
         self.num_sensors = 8
-        self.sensor_measurements = [self.max_sensor_length] * self.num_sensors
+        self.sensor_ranges = [self.max_sensor_length] * self.num_sensors
 
         self.screen_offset_vec = euclid.Vector3(0.0, 0.0, 0.0)
 
+        self.data_log = []
+
         #Set up NN
 
-    def control(self, acceleration, steering_rate):
+    def control(self, acceleration, steering):
         if self.crashed == False:
             self.accel = acceleration
-            self.steering_rate = steering_rate
+            self.steering = steering
 
     def update(self, time_delta, obstacles, finish_line):
         self.__reset_sensors()
@@ -60,6 +65,14 @@ class Car():
             self.__sense(obstacle)
             self.__detect_collision(obstacle)
         self.__detect_finish_line(finish_line)
+
+        current_data = []
+        for s_range in self.sensor_ranges:
+            current_data.append(self.__truncate(s_range,2))
+        current_data.append(self.__truncate(self.accel,2))
+        current_data.append(self.__truncate(self.steering,2))
+
+        self.data_log.append(current_data)
 
     def display(self, screen_handle, screen_size):
         #Compute offsets
@@ -75,7 +88,7 @@ class Car():
         
         so = self.sensor_origin + self.screen_offset_vec
     
-        sensor_vectors = self.__get_sensor_vectors(self.sensor_measurements)
+        sensor_vectors = self.__get_sensor_vectors(self.sensor_ranges)
         sv = []
         for line in sensor_vectors:
             sv.append((line[0]+self.screen_offset_vec, line[1]+self.screen_offset_vec))
@@ -102,8 +115,17 @@ class Car():
             pygame.draw.circle(screen_handle, (255,0,0), (int(line[1].x), int(line[1].y)), 2, 0)
 
 
+    def __truncate(self, f, n):
+        '''Truncates/pads a float f to n decimal places without rounding'''
+        s = '{}'.format(f)
+        if 'e' in s or 'E' in s:
+            return '{0:.{1}f}'.format(f, n)
+        i, p, d = s.partition('.')
+        return '.'.join([i, (d+'0'*n)[:n]])
+
+
     def __reset_sensors(self):
-        self.sensor_measurements = [self.max_sensor_length] * self.num_sensors
+        self.sensor_ranges = [self.max_sensor_length] * self.num_sensors
 
     def __update_dynamics(self, time_delta):
         # stay still if crashed
@@ -116,15 +138,21 @@ class Car():
 
         # update rates
         self.steering += self.steering_rate * time_delta
-
-        self.velocity += self.accel * time_delta
-        self.velocity -= self.velocity * self.rolling_drag * time_delta
-        self.velocity -= self.velocity * abs(self.steering) * self.steering_drag * time_delta
- 
         if self.steering > self.max_steering:
             self.steering = self.max_steering
         elif self.steering < -1*self.max_steering:
             self.steering = -1*self.max_steering
+
+        # update rates
+        self.accel += self.accel_rate * time_delta
+        if self.accel > self.max_accel:
+            self.accel = self.max_accel
+        elif self.accel < -1*self.max_accel:
+            self.accel = -1*self.max_accel
+
+        self.velocity += self.accel * time_delta
+        self.velocity -= self.velocity * self.rolling_drag * time_delta
+        self.velocity -= self.velocity * abs(self.steering) * self.steering_drag * time_delta
 
         # update pose
         self.orientation = self.orientation.rotate_around(euclid.Vector3(0.,0.,1.),self.steering * self.velocity)
@@ -132,7 +160,7 @@ class Car():
         
         # Accumulate trip metrics
         if self.crashed == False: 
-            self.dist_travelled += abs(self.position - self.prev_position)/1000.0
+            self.dist_travelled += math.copysign(abs(self.position - self.prev_position)/10.0, self.velocity)
             self.total_time += time_delta
             self.avg_velocity = self.dist_travelled/self.total_time
 
@@ -167,9 +195,9 @@ class Car():
             # find the minimum distance. range must be shorter than the current stored min range to be stored. 
             for vector in intersect_list:
                 measured_range = abs(vector - ray[0])
-                if measured_range < self.sensor_measurements[i]:
-                    self.sensor_measurements[i] = measured_range
-        #print self.sensor_measurements
+                if measured_range < self.sensor_ranges[i]:
+                    self.sensor_ranges[i] = measured_range
+        #print self.sensor_ranges
 
     def __detect_collision(self, obstacle):
         car_bounds = [self.rear_left, self.front_left, self.front_right, self.rear_right]

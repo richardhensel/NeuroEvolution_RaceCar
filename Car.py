@@ -13,16 +13,18 @@ class Car():
         self.prev_position = position 
         self.orientation = orientation  # orientation vector unit vector centered at the car's origin. 
         self.velocity = 0.0             # rate of change of positon in direction of travel ms-1
-        self.max_velocity = 250.0
 
         self.accel = 0.0               #Rate of change of velocity ms-2
         self.accel_rate = 0.0           #Rate of change of accel ms-3
-        self.max_accel = 60.0     
 
         self.steering =  0.0         #rate of change of yaw with respect to velocity rad/pixel -ve left, +ve right
         self.steering_rate =  0.0         #rate of change of steering rad/pixel/second -ve left, +ve right
+
+        #Limits    
+        self.max_velocity = 400.0
+        self.max_accel = 100.0     
         self.max_steering = 0.00015
-    
+
         #Drag parameters
         self.steering_drag = 0.9
         self.rolling_drag = 0.1
@@ -32,7 +34,7 @@ class Car():
         self.total_time = 0.0
         self.avg_velocity = 0.0         # average velocity for the trip
         self.crashed = False            # did the car crash into an obstacle?
-        self.finished = False            # did the car crash into an obstacle?
+        self.finished = False            # did the car pass through the finish line? 
 
         #Define the car geometry
         self.length = 30   #pixels

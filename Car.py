@@ -13,12 +13,14 @@ class Car():
         self.prev_position = position 
         self.orientation = orientation  # orientation vector unit vector centered at the car's origin. 
         self.velocity = 0.0             # rate of change of positon in direction of travel ms-1
+        self.max_velocity = 250.0
+
         self.accel = 0.0               #Rate of change of velocity ms-2
         self.accel_rate = 0.0           #Rate of change of accel ms-3
         self.max_accel = 60.0     
 
-        self.steering =  0.0         #rate of change of yaw with respect to velocity  -ve left, +ve right
-        self.steering_rate =  0.0         #rate of change of steering radm-2 -ve left, +ve right
+        self.steering =  0.0         #rate of change of yaw with respect to velocity rad/pixel -ve left, +ve right
+        self.steering_rate =  0.0         #rate of change of steering rad/pixel/second -ve left, +ve right
         self.max_steering = 0.00015
     
         #Drag parameters
@@ -33,8 +35,8 @@ class Car():
         self.finished = False            # did the car crash into an obstacle?
 
         #Define the car geometry
-        self.length = 30
-        self.width = 20
+        self.length = 30   #pixels
+        self.width = 20    #pixels 
         self.origin_dist = 0.25 * self.length #Origin is 1 quarter of the length from the rear of the car
         self.color = 0,0,0              #black
         self.line_width = 3
@@ -66,11 +68,14 @@ class Car():
             self.__detect_collision(obstacle)
         self.__detect_finish_line(finish_line)
 
+        # Scale the data to values between -1 and 1. append to list with one row per time step
         current_data = []
         for s_range in self.sensor_ranges:
-            current_data.append(self.__truncate(s_range,2))
-        current_data.append(self.__truncate(self.accel,2))
-        current_data.append(self.__truncate(self.steering,2))
+            current_data.append(self.__truncate(self.__translate(s_range, 0.0, self.max_sensor_length, 0.0, 1.0),2))
+
+        current_data.append(self.__truncate(self.__translate(self.velocity, -1*self.max_velocity, self.max_velocity, -1.0, 1.0),2))
+        current_data.append(self.__truncate(self.__translate(self.accel, -1*self.max_accel, self.max_accel, -1.0, 1.0),2))
+        current_data.append(self.__truncate(self.__translate(self.steering, -1*self.max_steering, self.max_steering, -1.0, 1.0),2))
 
         self.data_log.append(current_data)
 
@@ -143,7 +148,6 @@ class Car():
         elif self.steering < -1*self.max_steering:
             self.steering = -1*self.max_steering
 
-        # update rates
         self.accel += self.accel_rate * time_delta
         if self.accel > self.max_accel:
             self.accel = self.max_accel
@@ -153,6 +157,10 @@ class Car():
         self.velocity += self.accel * time_delta
         self.velocity -= self.velocity * self.rolling_drag * time_delta
         self.velocity -= self.velocity * abs(self.steering) * self.steering_drag * time_delta
+        if self.velocity > self.max_velocity:
+            self.velocity = self.max_velocity
+        elif self.velocity < -1*self.max_velocity:
+            self.velocity = -1*self.max_velocity
 
         # update pose
         self.orientation = self.orientation.rotate_around(euclid.Vector3(0.,0.,1.),self.steering * self.velocity)
@@ -160,7 +168,7 @@ class Car():
         
         # Accumulate trip metrics
         if self.crashed == False: 
-            self.dist_travelled += math.copysign(abs(self.position - self.prev_position)/10.0, self.velocity)
+            self.dist_travelled += math.copysign(abs(self.position - self.prev_position), self.velocity)
             self.total_time += time_delta
             self.avg_velocity = self.dist_travelled/self.total_time
 
@@ -178,7 +186,7 @@ class Car():
             intersect_list = []
 
             ray = sensor_vectors[i]
-            #unpack the start and end points of the sensor ray
+            #unpack the start and end points of the sensor ray 
             p1 = (ray[0].x, ray[0].y)
             p2 = (ray[1].x, ray[1].y)
             for j in range(0,len(obstacle)):
@@ -275,3 +283,13 @@ class Car():
         except:
             return None, None
 
+    def __translate(self, value, leftMin, leftMax, rightMin, rightMax):
+        # Figure out how 'wide' each range is
+        leftSpan = leftMax - leftMin
+        rightSpan = rightMax - rightMin
+
+        # Convert the left range into a 0-1 range (float)
+        valueScaled = float(value - leftMin) / float(leftSpan)
+
+        # Convert the 0-1 range into a value in the right range.
+        return rightMin + (valueScaled * rightSpan)

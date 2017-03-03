@@ -55,9 +55,24 @@ class Car():
 
         #Set up NN
 
-    def control(self, acceleration, steering):
+
+    def get_inputs(self):
+        inputs = []
+        #Inputs
+        for s_range in self.sensor_ranges:
+            inputs.append(self.__truncate(s_range,2))
+
+        inputs.append(self.__truncate(self.velocity,2))
+        return inputs 
+
+    def control_scaled(self, accel_scaled, steer_scaled):
         if self.crashed == False:
-            self.accel = acceleration
+            self.accel = self.__translate(accel_scaled, -1.0, 1.0, -1*self.max_accel, self.max_accel)
+            self.steering = self.__translate(steer_scaled, -1.0, 1.0, -1*self.max_accel, self.max_accel)
+
+    def control_unscaled(self, accel, steering):
+        if self.crashed == False:
+            self.accel = accel
             self.steering = steering
 
     def update(self, time_delta, obstacles, finish_line):
@@ -72,10 +87,12 @@ class Car():
 
         # Scale the data to values between -1 and 1. append to list with one row per time step
         current_data = []
+        #Inputs
         for s_range in self.sensor_ranges:
-            current_data.append(self.__truncate(self.__translate(s_range, 0.0, self.max_sensor_length, 0.0, 1.0),2))
+            current_data.append(self.__truncate(s_range,2))
 
-        current_data.append(self.__truncate(self.__translate(self.velocity, -1*self.max_velocity, self.max_velocity, -1.0, 1.0),2))
+        current_data.append(self.__truncate(self.velocity,2))
+        #Outputs
         current_data.append(self.__truncate(self.__translate(self.accel, -1*self.max_accel, self.max_accel, -1.0, 1.0),2))
         current_data.append(self.__truncate(self.__translate(self.steering, -1*self.max_steering, self.max_steering, -1.0, 1.0),2))
 

@@ -4,6 +4,9 @@ import euclid
 from pygame.locals import *
 from pygame.key import *
 
+from keras.models import model_from_json
+import numpy
+
 import csv  
 from Car import Car
 
@@ -33,10 +36,36 @@ car_x = 1000.0
 car_y = 80.0
 training_data = 'training_data.csv'
 
+control_option = 'training'
+control_option = 'neural'
+
 while runMe:
 
     car = Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(1.,0., 0.))
-    car.control(60.0, 0.0)
+
+
+    if control_option == 'training':
+        print "Manual control"
+        print "Controls:- Accelerate: UP, Brake: DOWN, Left: A, Right: K"
+
+    elif control_option== 'neural':
+        print "Machine Control"
+
+        # load json and create model
+        json_file = open('model.json', 'r')
+        loaded_model_json = json_file.read()
+        json_file.close()
+        model = model_from_json(loaded_model_json)
+        # load weights into new model
+        model.load_weights("model.h5")
+
+    else:
+        print "No valid control option selected"
+        runMe = False
+
+    #Start with initial acceleration
+    car.control_unscaled(60.0, 0.0)
+
     finish_line = [(car_x-10.0, car_y - 100), (car_x-10.0, car_y + 100)]
    ## NEEDED TO TRACE A LINE ON SCREEN
    # points = []
@@ -57,26 +86,32 @@ while runMe:
         dtime_ms = clock.tick(fpsLimit)
         dtime = dtime_ms/1000.0
 
-        keys = pygame.key.get_pressed()
+        if control_option == 'training':
+            keys = pygame.key.get_pressed()
+            if (keys[pygame.K_a] ==True and keys[pygame.K_f] ==True) or (keys[pygame.K_a] ==False and keys[pygame.K_f] ==False):
+                steering_rate = 0.0        
+            elif keys[pygame.K_a] ==True:
+                steering_rate = -1 * max_steering_rate
+            elif keys[pygame.K_f] ==True:
+                steering_rate = max_steering_rate
 
-        if (keys[pygame.K_a] ==True and keys[pygame.K_f] ==True) or (keys[pygame.K_a] ==False and keys[pygame.K_f] ==False):
-            steering_rate = 0.0        
-        elif keys[pygame.K_a] ==True:
-            steering_rate = -1 * max_steering_rate
-        elif keys[pygame.K_f] ==True:
-            steering_rate = max_steering_rate
+            if (keys[pygame.K_UP] ==True and keys[pygame.K_DOWN] ==True) or (keys[pygame.K_UP] ==False and keys[pygame.K_DOWN] ==False):
+                accel = 0.0        
+            elif keys[pygame.K_UP] ==True:
+                accel = max_accel
+            elif keys[pygame.K_DOWN] ==True:
+                accel = -1*max_accel
 
-        if (keys[pygame.K_UP] ==True and keys[pygame.K_DOWN] ==True) or (keys[pygame.K_UP] ==False and keys[pygame.K_DOWN] ==False):
-            accel = 0.0        
-        elif keys[pygame.K_UP] ==True:
-            accel = max_accel
-        elif keys[pygame.K_DOWN] ==True:
-            accel = -1*max_accel
+            car.accel_rate = accel
+            car.steering_rate = steering_rate
 
-        car.accel_rate = accel
-        car.steering_rate = steering_rate
+        elif control_option =='neural':
 
-        #car.control(accel, steering)
+            inputs =  [car.get_inputs()]
+            numpy_inputs = numpy.array(inputs)
+            prediction = model.predict(numpy_inputs)
+            car.control_scaled(prediction[0][0], prediction[0][1])
+
 
         screen.fill((255,255,255))
 
@@ -96,6 +131,8 @@ while runMe:
             obs.append(ob)
             pygame.draw.lines(screen, (0,0,0), True, ob, 5)
 
+
+
         ## NEEDED TO TRACE A LINE ON SCREEN
        # timer += dtime
        # if timer - old_timer > clock_tick:
@@ -112,12 +149,13 @@ while runMe:
         pygame.display.flip()
         if car.finished==True:
             print 'FINISHED! Distance = ', car.dist_travelled,  ' Time = ', car.total_time, 'velocity = ', car.avg_velocity
- 
-            #Write data set to csv
-            with open(training_data, 'a') as f:
-                writer = csv.writer(f)
-                for line in car.data_log:
-                    writer.writerow(line)
+
+            if control_option == 'training': 
+                #Write data set to csv
+                with open(training_data, 'a') as f:
+                    writer = csv.writer(f)
+                    for line in car.data_log:
+                        writer.writerow(line)
     
             break
         if car.crashed==True:

@@ -36,7 +36,7 @@ car_x = 1000.0
 car_y = 80.0
 training_data = 'training_data.csv'
 
-control_option = 'training'
+#control_option = 'training'
 control_option = 'neural'
 
 while runMe:
@@ -46,7 +46,7 @@ while runMe:
 
     if control_option == 'training':
         print "Manual control"
-        print "Controls:- Accelerate: UP, Brake: DOWN, Left: A, Right: K"
+        print "Controls:- Accelerate: UP, Brake: DOWN, Left: A, Right: F"
 
     elif control_option== 'neural':
         print "Machine Control"

@@ -68,7 +68,7 @@ class Car():
     def control_scaled(self, accel_scaled, steer_scaled):
         if self.crashed == False:
             self.accel = self.__translate(accel_scaled, -1.0, 1.0, -1*self.max_accel, self.max_accel)
-            self.steering = self.__translate(steer_scaled, -1.0, 1.0, -1*self.max_accel, self.max_accel)
+            self.steering = self.__translate(steer_scaled, -1.0, 1.0, -1*self.max_steering, self.max_steering)
 
     def control_unscaled(self, accel, steering):
         if self.crashed == False:

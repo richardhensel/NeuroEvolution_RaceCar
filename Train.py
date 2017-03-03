@@ -20,7 +20,7 @@ from sklearn.pipeline import Pipeline
 seed = 7
 numpy.random.seed(seed)
 
-def BaselineModel():
+def new_model():
     model = Sequential()
     model.add(Dense(13, input_dim=9, init='uniform', activation='relu'))
     model.add(Dense(13, init='uniform', activation='relu'))
@@ -31,6 +31,16 @@ def BaselineModel():
     model.compile(loss='mse', optimizer='sgd', metrics=['mape'])
     return model
 
+def load_model():
+    # load json and create model
+    json_file = open('model.json', 'r')
+    loaded_model_json = json_file.read()
+    json_file.close()
+    model = model_from_json(loaded_model_json)
+    # load weights into new model
+    model.load_weights("model.h5")
+    model.compile(loss='mse', optimizer='sgd', metrics=['mape'])
+    return model
 
 dataset = numpy.loadtxt("training_data.csv", delimiter=",")
 numpy.random.shuffle(dataset)
@@ -39,10 +49,12 @@ numpy.random.shuffle(dataset)
 X = dataset[:,0:9]
 Y = dataset[:,9:]
 
-model = BaselineModel()
+
+model = new_model()
+#model = load_model()
 
 # Fit the model
-model.fit(X, Y, nb_epoch=300, batch_size=3,  verbose=2)
+model.fit(X, Y, nb_epoch=100, batch_size=3,  verbose=2)
 
 
 # serialize model to JSON

@@ -50,7 +50,7 @@ class Network():
         self.model.save_weights(weights_file)
         print("Saved model to disk")
 
-    def train(self, training_data, nb_epoch, batch_size,  verbose):
+    def train(self, training_data, epoch=200, batch=3):
         dataset = numpy.loadtxt(training_data, delimiter=",")
         numpy.random.shuffle(dataset)
 
@@ -59,7 +59,7 @@ class Network():
         Y = dataset[:,9:]
 
         # Fit the model
-        self.model.fit(X, Y, nb_epoch, batch_size,  verbose)
+        self.model.fit(X, Y, nb_epoch=epoch, batch_size=batch,  verbose=2)
 
     def predict(self, input_list):
     #Y is a lingle line list containing the inputs. 

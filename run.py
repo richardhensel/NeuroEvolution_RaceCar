@@ -31,23 +31,23 @@ car_y = 80.0
 
 #control_option = 'training'
 control_option = 'manual'
+#control_option = 'neural'
 
 while runMe:
 
     network_list = []
-    network_list.append(Network.load("model.json", "model.h5"))
+    network_list.append(Network.new())
     network_list.append(Network.load("model.json", "model.h5"))
 
     car_list = []
-    car_list.append(Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(-1.,0., 0.)))
-    car_list.append(Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(-1.,0., 0.)))
+    car_list.append(Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(1.,0., 0.)))
+    car_list.append(Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(1.,0., 0.)))
 
     for car in car_list:
     #Start with initial acceleration
         car.control_unscaled(60.0, 0.0)
 
     obstacles = [left_barrier,right_barrier]
-
 
     finish_line = [(car_x-10.0, car_y - 100), (car_x-10.0, car_y + 100)]
 
@@ -69,7 +69,8 @@ while runMe:
                 runMe = False
 
         #Limit the framerate
-        dtime_ms = clock.tick(fpsLimit)
+        #dtime_ms = clock.tick(fpsLimit)
+        dtime_ms = clock.tick()
         dtime = dtime_ms/1000.0
 
 
@@ -95,7 +96,17 @@ while runMe:
         pygame.display.flip()
 
         if environment.check_finished() == True:
-            #print 'FINISHED! Distance = ', car.dist_travelled,  ' Time = ', car.total_time, 'velocity = ', car.avg_velocity
+            if control_option == 'training': 
+                print 'MANUAL FINISHED! Distance = ', car.dist_travelled,  ' Time = ', car.total_time, 'velocity = ', car.avg_velocity
+                #Write data set to csv
+                with open(training_data, 'a') as f:
+                    writer = csv.writer(f)
+                    for line in car.data_log:
+                        writer.writerow(line)
+                print "Training data written to file"
+
+            #elif control_option == 'reinforcement':
+                
             break
        # if car.finished==True:
        #     print 'FINISHED! Distance = ', car.dist_travelled,  ' Time = ', car.total_time, 'velocity = ', car.avg_velocity

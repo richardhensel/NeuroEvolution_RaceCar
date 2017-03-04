@@ -47,23 +47,27 @@ class Environment():
             elif keys[pygame.K_UP] ==True:
                 accel_rate = self.max_accel_rate
             elif keys[pygame.K_DOWN] ==True:
-                accel_rate = -1*self.max_accel_rate
+                accel_rate = -1 * self.max_accel_rate
 
             self.car_list[0].control_rates(accel_rate, steering_rate)
 
-            for i in range(1,len(self.car_list)):
-                prediction = self.network_list[i].predict(self.car_list[i].get_inputs())
-                self.car_list[i].control_scaled(prediction[0], prediction[1])
+            if len(self.car_list) > 1:
+                for i in range(1,len(self.car_list)):
+                    if self.car_list[i].crashed != True and self.car_list[i].finished != True:
+                        prediction = self.network_list[i].predict(self.car_list[i].get_inputs())
+                        self.car_list[i].control_scaled(prediction[0], prediction[1])
 
         #All cars controlled by nn
         elif self.control_type == 'neural':
             for i in range(0,len(self.car_list)):
-                prediction = self.network_list[i].predict(self.car_list[i].get_inputs())
-                self.car_list[i].control_scaled(prediction[0], prediction[1])
+                if self.car_list[i].crashed != True and self.car_list[i].finished != True:
+                    prediction = self.network_list[i].predict(self.car_list[i].get_inputs())
+                    self.car_list[i].control_scaled(prediction[0], prediction[1])
 
     def update(self, time_delta):
         for car in self.car_list:
-            car.update(time_delta, self.obstacle_list, self.finish_line)
+            if car.crashed != True and car.finished != True:
+                car.update(time_delta, self.obstacle_list, self.finish_line)
         
         #Update the screen offset for display purposes    
         self.screen_offset_vec = 0.5 * self.screen_vec - self.car_list[0].position

@@ -23,7 +23,7 @@ class Car():
         #Limits    
         self.max_velocity = 400.0
         self.max_accel = 100.0     
-        self.max_steering = 0.0002
+        self.max_steering = 0.00015
 
         #Drag parameters
         self.steering_drag = 0.9
@@ -98,8 +98,8 @@ class Car():
 
         current_data.append(self.__truncate(self.velocity,2))
         #Outputs
-        current_data.append(self.__truncate(self.__translate(self.accel, -1*self.max_accel, self.max_accel, -1.0, 1.0),2))
-        current_data.append(self.__truncate(self.__translate(self.steering, -1*self.max_steering, self.max_steering, -1.0, 1.0),2))
+        current_data.append(self.__truncate(self.accel,2))
+        current_data.append(self.__truncate(self.steering,2))
 
         self.data_log.append(current_data)
 
@@ -186,7 +186,7 @@ class Car():
             self.velocity = -1*self.max_velocity
 
         # update pose
-        self.orientation = self.orientation.rotate_around(euclid.Vector3(0.,0.,1.),self.steering * self.velocity)
+        self.orientation = self.orientation.rotate_around(euclid.Vector3(0.,0.,1.),self.steering * self.velocity + 0.5 * (self.steering_rate * (time_delta**2)))
         self.position += self.velocity * self.orientation * time_delta + 0.5 * (self.accel * self.orientation * (time_delta**2))
         
         # Accumulate trip metrics

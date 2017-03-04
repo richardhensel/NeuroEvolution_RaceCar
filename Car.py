@@ -23,7 +23,7 @@ class Car():
         #Limits    
         self.max_velocity = 400.0
         self.max_accel = 100.0     
-        self.max_steering = 0.00015
+        self.max_steering = 0.0002
 
         #Drag parameters
         self.steering_drag = 0.9
@@ -75,6 +75,11 @@ class Car():
             self.accel = accel
             self.steering = steering
 
+    def control_rates(self, accel_rate, steering_rate):
+        if self.crashed == False:
+            self.accel_rate = accel_rate
+            self.steering_rate = steering_rate
+
     def update(self, time_delta, obstacles, finish_line):
         self.__reset_sensors()
         self.__update_dynamics(time_delta)
@@ -98,24 +103,22 @@ class Car():
 
         self.data_log.append(current_data)
 
-    def display(self, screen_handle, screen_size):
+    def display(self, screen_handle, screen_offset_vec, draw_vectors = True):
         #Compute offsets
-        screen_vec = euclid.Vector3(screen_size[0], screen_size[1], 0.0)
-        self.screen_offset_vec = 0.5 * screen_vec - self.position
 
-        pos = self.position + self.screen_offset_vec
+        pos = self.position + screen_offset_vec
 
-        rl = self.rear_left + self.screen_offset_vec
-        fl = self.front_left + self.screen_offset_vec
-        fr = self.front_right + self.screen_offset_vec
-        rr = self.rear_right + self.screen_offset_vec
+        rl = self.rear_left + screen_offset_vec
+        fl = self.front_left + screen_offset_vec
+        fr = self.front_right + screen_offset_vec
+        rr = self.rear_right + screen_offset_vec
         
-        so = self.sensor_origin + self.screen_offset_vec
+        so = self.sensor_origin + screen_offset_vec
     
         sensor_vectors = self.__get_sensor_vectors(self.sensor_ranges)
         sv = []
         for line in sensor_vectors:
-            sv.append((line[0]+self.screen_offset_vec, line[1]+self.screen_offset_vec))
+            sv.append((line[0]+screen_offset_vec, line[1]+screen_offset_vec))
 
         #Draw car
         #point_list = [(self.rear_left.x, self.rear_left.y), (self.front_left.x, self.front_left.y), (self.front_right.x, self.front_right.y), (self.rear_right.x, self.rear_right.y)]
@@ -126,17 +129,18 @@ class Car():
         pygame.draw.lines(screen_handle, self.color, True, point_list, self.line_width)
 
         #Draw origin
-        pygame.draw.circle(screen_handle, (255,0,0), (int(pos.x),int(pos.y)), 2, 0)
+        #pygame.draw.circle(screen_handle, (255,0,0), (int(pos.x),int(pos.y)), 2, 0)
         #Draw sensor origin
-        pygame.draw.circle(screen_handle, (0,0,255), (int(so.x), int(so.y)), 2, 0)
+        #pygame.draw.circle(screen_handle, (0,0,255), (int(so.x), int(so.y)), 2, 0)
 
         #Draw sensor vectors
-        for line in sv:
-            point_list = [(line[0].x, line[0].y),(line[1].x, line[1].y)]
-            pygame.draw.lines(screen_handle, (0,0,255), False, point_list, 1)
+        if draw_vectors == True:
+            for line in sv:
+                point_list = [(line[0].x, line[0].y),(line[1].x, line[1].y)]
+                pygame.draw.lines(screen_handle, (0,0,255), False, point_list, 1)
 
             #Draw the intersection if detected
-            pygame.draw.circle(screen_handle, (255,0,0), (int(line[1].x), int(line[1].y)), 2, 0)
+            #pygame.draw.circle(screen_handle, (255,0,0), (int(line[1].x), int(line[1].y)), 2, 0)
 
 
     def __truncate(self, f, n):

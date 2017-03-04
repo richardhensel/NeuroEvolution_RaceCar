@@ -9,7 +9,8 @@ import numpy
 
 import csv  
 from Car import Car
-
+from Network import Network
+from Environment import Environment
 
 screenSize = screenWidth, screenHeight = 1000, 700
 
@@ -24,49 +25,34 @@ left_barrier = [(980, 20), (1000.0, 20.0), (980, 20), (980, 20), (980, 20), (980
 
 right_barrier = [(980, 120), (1000.0, 120.0), (980, 120), (984, 120), (1002, 120), (1028, 119), (1068, 120), (1122, 122), (1186, 123), (1250, 126), (1309, 136), (1363, 156), (1414, 170), (1466, 168), (1514, 166), (1560, 172), (1598, 196), (1623, 232), (1632, 271), (1625, 308), (1611, 341), (1599, 372), (1592, 406), (1592, 439), (1599, 471), (1612, 498), (1629, 522), (1645, 545), (1658, 567), (1675, 585), (1692, 602), (1705, 622), (1714, 650), (1716, 679), (1710, 707), (1695, 734), (1673, 755), (1653, 777), (1638, 802), (1624, 828), (1610, 856), (1594, 887), (1570, 917), (1537, 937), (1498, 953), (1458, 957), (1419, 951), (1384, 930), (1357, 901), (1339, 866), (1328, 827), (1318, 789), (1305, 754), (1294, 719), (1278, 683), (1260, 649), (1241, 613), (1223, 578), (1203, 541), (1182, 505), (1159, 470), (1138, 437), (1114, 406), (1089, 380), (1067, 353), (1043, 331), (1013, 314), (981, 304), (946, 304), (912, 312), (879, 326), (851, 347), (833, 374), (820, 402), (802, 425), (780, 443), (755, 462), (728, 478), (701, 498), (674, 519), (649, 541), (628, 569), (606, 599), (585, 627), (563, 655), (541, 688), (518, 720), (490, 751), (457, 781), (417, 804), (372, 811), (329, 805), (291, 791), (257, 771), (232, 743), (219, 707), (216, 669), (219, 631), (224, 593), (227, 556), (228, 519), (233, 480), (247, 443), (269, 409), (298, 382), (331, 366), (365, 356), (399, 353), (430, 346), (457, 332), (477, 311), (493, 288), (500, 263), (505, 239), (511, 216), (520, 195), (537, 174), (559, 156), (587, 145), (618, 140), (650, 137), (684, 138), (719, 135), (754, 129), (792, 124), (827, 118), (861, 113), (893, 111), (924, 112)]
 
-obstacles = [left_barrier,right_barrier]
-max_accel = 60.0
-max_steering_rate = 0.0005
-
-clock_tick = 0.5
-timer = 0.0
-old_timer = 0.0
 
 car_x = 1000.0
 car_y = 80.0
-training_data = 'training_data.csv'
 
 #control_option = 'training'
-control_option = 'neural'
+control_option = 'manual'
 
 while runMe:
 
-    car = Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(-1.,0., 0.))
+    network_list = []
+    network_list.append(Network.load("model.json", "model.h5"))
+    network_list.append(Network.load("model.json", "model.h5"))
 
+    car_list = []
+    car_list.append(Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(-1.,0., 0.)))
+    car_list.append(Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(-1.,0., 0.)))
 
-    if control_option == 'training':
-        print "Manual control"
-        print "Controls:- Accelerate: UP, Brake: DOWN, Left: A, Right: F"
-
-    elif control_option== 'neural':
-        print "Machine Control"
-
-        # load json and create model
-        json_file = open('model.json', 'r')
-        loaded_model_json = json_file.read()
-        json_file.close()
-        model = model_from_json(loaded_model_json)
-        # load weights into new model
-        model.load_weights("model.h5")
-
-    else:
-        print "No valid control option selected"
-        runMe = False
-
+    for car in car_list:
     #Start with initial acceleration
-    car.control_unscaled(60.0, 0.0)
+        car.control_unscaled(60.0, 0.0)
+
+    obstacles = [left_barrier,right_barrier]
+
 
     finish_line = [(car_x-10.0, car_y - 100), (car_x-10.0, car_y + 100)]
+
+    environment = Environment(network_list, car_list, obstacles, finish_line, screen, screenSize, control_option)
+
    ## NEEDED TO TRACE A LINE ON SCREEN
    # points = []
    # pos = car.position
@@ -86,52 +72,12 @@ while runMe:
         dtime_ms = clock.tick(fpsLimit)
         dtime = dtime_ms/1000.0
 
-        if control_option == 'training':
-            keys = pygame.key.get_pressed()
-            if (keys[pygame.K_a] ==True and keys[pygame.K_f] ==True) or (keys[pygame.K_a] ==False and keys[pygame.K_f] ==False):
-                steering_rate = 0.0        
-            elif keys[pygame.K_a] ==True:
-                steering_rate = -1 * max_steering_rate
-            elif keys[pygame.K_f] ==True:
-                steering_rate = max_steering_rate
-
-            if (keys[pygame.K_UP] ==True and keys[pygame.K_DOWN] ==True) or (keys[pygame.K_UP] ==False and keys[pygame.K_DOWN] ==False):
-                accel = 0.0        
-            elif keys[pygame.K_UP] ==True:
-                accel = max_accel
-            elif keys[pygame.K_DOWN] ==True:
-                accel = -1*max_accel
-
-            car.accel_rate = accel
-            car.steering_rate = steering_rate
-
-        elif control_option =='neural':
-
-            inputs =  [car.get_inputs()]
-            numpy_inputs = numpy.array(inputs)
-            prediction = model.predict(numpy_inputs)
-            car.control_scaled(prediction[0][0], prediction[0][1])
-
 
         screen.fill((255,255,255))
 
-        car.update(dtime, obstacles, finish_line)
-
-        car.display(screen, screenSize)
-        screen_offset = car.screen_offset_vec
-        #draw obstacles
-        #all_obs = obstacles[:]
-        #all_obs.append(finish_line)
-        obs = []
-        for obstacle in obstacles:
-            ob = []
-            for point in obstacle:
-                point_vec = euclid.Vector3(point[0], point[1]) + screen_offset
-                ob.append((point_vec.x, point_vec.y))
-            obs.append(ob)
-            pygame.draw.lines(screen, (0,0,0), True, ob, 5)
-
-
+        environment.control()
+        environment.update(dtime)
+        environment.display()
 
         ## NEEDED TO TRACE A LINE ON SCREEN
        # timer += dtime
@@ -147,20 +93,24 @@ while runMe:
 
         screen.unlock()
         pygame.display.flip()
-        if car.finished==True:
-            print 'FINISHED! Distance = ', car.dist_travelled,  ' Time = ', car.total_time, 'velocity = ', car.avg_velocity
 
-            if control_option == 'training': 
-                #Write data set to csv
-                with open(training_data, 'a') as f:
-                    writer = csv.writer(f)
-                    for line in car.data_log:
-                        writer.writerow(line)
-                print "Training data written to file"    
+        if environment.check_finished() == True:
+            #print 'FINISHED! Distance = ', car.dist_travelled,  ' Time = ', car.total_time, 'velocity = ', car.avg_velocity
             break
-        if car.crashed==True:
-            print 'CRASHED! Distance = ', car.dist_travelled,  ' Time = ', car.total_time, 'velocity = ', car.avg_velocity
-            break
+       # if car.finished==True:
+       #     print 'FINISHED! Distance = ', car.dist_travelled,  ' Time = ', car.total_time, 'velocity = ', car.avg_velocity
+
+       #     if control_option == 'training': 
+       #         #Write data set to csv
+       #         with open(training_data, 'a') as f:
+       #             writer = csv.writer(f)
+       #             for line in car.data_log:
+       #                 writer.writerow(line)
+       #         print "Training data written to file"    
+       #     break
+       # if car.crashed==True:
+       #     print 'CRASHED! Distance = ', car.dist_travelled,  ' Time = ', car.total_time, 'velocity = ', car.avg_velocity
+       #     break
         ## NEEDED TO TRACE A LINE ON SCREEN
     #print points
 pygame.quit()

@@ -41,7 +41,7 @@ control_option = 'neural'
 
 while runMe:
 
-    car = Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(1.,0., 0.))
+    car = Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(-1.,0., 0.))
 
 
     if control_option == 'training':
@@ -156,7 +156,7 @@ while runMe:
                     writer = csv.writer(f)
                     for line in car.data_log:
                         writer.writerow(line)
-    
+                print "Training data written to file"    
             break
         if car.crashed==True:
             print 'CRASHED! Distance = ', car.dist_travelled,  ' Time = ', car.total_time, 'velocity = ', car.avg_velocity

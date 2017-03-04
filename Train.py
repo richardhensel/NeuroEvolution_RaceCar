@@ -54,7 +54,7 @@ model = new_model()
 #model = load_model()
 
 # Fit the model
-model.fit(X, Y, nb_epoch=100, batch_size=3,  verbose=2)
+model.fit(X, Y, nb_epoch=200, batch_size=3,  verbose=2)
 
 
 # serialize model to JSON

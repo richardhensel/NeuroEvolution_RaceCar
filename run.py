@@ -31,24 +31,54 @@ car_y = 80.0
 
 #control_option = 'training'
 #control_option = 'manual'
-control_option = 'neural'
+#control_option = 'neural'
+control_option = 'reinforcement'
 training_data = 'training_data.csv'
+generation_file = 'generation.csv'
 
+num_cars = 10
 
-initial_network = Network.load("model.json", "model.h5")
+def get_generation(gen_file):
+    generation = 0
+    with open(gen_file, 'rb') as f:
+        reader = csv.reader(f, delimiter=',')
+        for line in reader:
+            generation = int(line[0]) 
+            print generation
+    
+    return generation
+
+def set_generation(gen_file, generation):
+    #Write data set to csv
+    with open(gen_file, 'w') as f:
+        writer = csv.writer(f)
+        writer.writerow([generation])
+
 
 while runMe:
+    #load the generation number
+    if control_option == 'reinforcement':
+        generation = get_generation(generation_file) 
+    else:
+        generation = 1
+
+    dirn = random.randint(0,1)
+    if  dirn == 1:
+        direction = 1.0
+    else:
+        direction = -1.0
 
     network_list = []
-    network_list.append(Network(initial_network.rand_copy()))
-    network_list.append(Network(initial_network.rand_copy()))
-    network_list.append(Network(initial_network.rand_copy()))
-
     car_list = []
-    car_list.append(Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(1.,0., 0.)))
-    car_list.append(Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(1.,0., 0.)))
-    car_list.append(Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(1.,0., 0.)))
+    for i in range(num_cars):
+        model_file = 'model/model.json'
+        weights_file = 'model/weights_gen'+str(generation-1)+'.h5'
+    
+        rand_network = Network.load(model_file, weights_file)
+        rand_network.rand_mod() 
+        network_list.append(rand_network)
 
+        car_list.append(Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(direction,0., 0.)))
     for car in car_list:
     #Start with initial acceleration
         car.control_unscaled(60.0, 0.0)
@@ -83,7 +113,9 @@ while runMe:
         #Limit the framerate
         dtime_ms = clock.tick(fpsLimit)
         #dtime_ms = clock.tick()
-        dtime = dtime_ms/1000.0
+        #dtime = dtime_ms/1000.0
+
+        dtime = 0.1
 
         environment.update(dtime)
         environment.display()
@@ -111,8 +143,15 @@ while runMe:
                     car.write_data(training_data)
 
 
-            #elif control_option == 'reinforcement':
-                
+            elif control_option == 'reinforcement':
+                best_model = environment.network_list[environment.max_dist_index]
+                weights_file = 'model/weights_gen'+str(generation)+'.h5'
+                best_model.save_weights(weights_file)
+
+                #Set the generation file for next loop
+                set_generation(generation_file, generation+1)
+                #get the most fit car
+                #save the model weights to file   
             break
        # if car.finished==True:
        #     print 'FINISHED! Distance = ', car.dist_travelled,  ' Time = ', car.total_time, 'velocity = ', car.avg_velocity
@@ -132,3 +171,5 @@ while runMe:
     #print points
 pygame.quit()
 sys.exit()
+
+

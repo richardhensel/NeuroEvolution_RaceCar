@@ -3,7 +3,7 @@ from keras.layers import Dense
 
 from keras.models import model_from_json
 import numpy
-
+import random
 import csv
 
 class Network():
@@ -69,11 +69,19 @@ class Network():
         #This needs to be generalized to accept any number of outputs
         return [prediction[0][0], prediction[0][1]]
 
-    def random_adjust_copy(self):
-        adjusted_model =0 
-        return adjusted_model
+    def rand_copy(self):
+        model_copy = self.model
+        print  model_copy.get_weights()[0]
+        model_copy.set_weights(self.__mutate(model_copy.get_weights()))
+        return model_copy
     
     def copy(self):
         return self.model
     
-
+    def __mutate(weights):
+        for xi in range(len(weights)):
+            for yi in range(len(weights[xi])):
+                if random.uniform(0, 1) > 0.85:
+                    change = random.uniform(-0.5,0.5)
+                    weights[xi][yi] += change
+        return weights

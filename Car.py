@@ -2,7 +2,7 @@ import math, pygame, pygame.mixer
 import euclid
 from pygame.locals import *
 
-
+import csv
 
 class Car():
 
@@ -23,7 +23,8 @@ class Car():
         #Limits    
         self.max_velocity = 400.0
         self.max_accel = 100.0     
-        self.max_steering = 0.00015
+        #self.max_steering = 0.00015 #For orientation not dependant on dtime.
+        self.max_steering = 0.009 #Works well for manual control
 
         #Drag parameters
         self.steering_drag = 0.9
@@ -52,9 +53,6 @@ class Car():
         self.screen_offset_vec = euclid.Vector3(0.0, 0.0, 0.0)
 
         self.data_log = []
-
-        #Set up NN
-
 
     def get_inputs(self):
         inputs = []
@@ -90,17 +88,9 @@ class Car():
             self.__detect_collision(obstacle)
         self.__detect_finish_line(finish_line)
 
-        # Scale the data to values between -1 and 1. append to list with one row per time step
-        current_data = []
-        #Inputs
-        for s_range in self.sensor_ranges:
-            current_data.append(self.__truncate(s_range,2))
+        self.__log_data(False, True)
 
-        current_data.append(self.__truncate(self.velocity,2))
-        #Outputs
-        current_data.append(self.__truncate(self.accel,2))
-        current_data.append(self.__truncate(self.steering,2))
-
+    def __translate(self, value, leftMin, leftMax, rightMin, rightMax):
         self.data_log.append(current_data)
 
     def display(self, screen_handle, screen_offset_vec, draw_vectors = True):
@@ -121,15 +111,13 @@ class Car():
             sv.append((line[0]+screen_offset_vec, line[1]+screen_offset_vec))
 
         #Draw car
-        #point_list = [(self.rear_left.x, self.rear_left.y), (self.front_left.x, self.front_left.y), (self.front_right.x, self.front_right.y), (self.rear_right.x, self.rear_right.y)]
-
 
         #Draw the offset points
         point_list = [(rl.x, rl.y), (fl.x, fl.y), (fr.x, fr.y), (rr.x, rr.y)]
         pygame.draw.lines(screen_handle, self.color, True, point_list, self.line_width)
 
         #Draw origin
-        #pygame.draw.circle(screen_handle, (255,0,0), (int(pos.x),int(pos.y)), 2, 0)
+        pygame.draw.circle(screen_handle, (255,0,0), (int(pos.x),int(pos.y)), 2, 0)
         #Draw sensor origin
         #pygame.draw.circle(screen_handle, (0,0,255), (int(so.x), int(so.y)), 2, 0)
 
@@ -142,6 +130,13 @@ class Car():
             #Draw the intersection if detected
             #pygame.draw.circle(screen_handle, (255,0,0), (int(line[1].x), int(line[1].y)), 2, 0)
 
+    def write_data(self, file_name):
+        #Write data set to csv
+        with open(file_name, 'a') as f:
+            writer = csv.writer(f)
+            for line in self.data_log:
+                writer.writerow(line)
+        print "Training data written to file"
 
     def __truncate(self, f, n):
         '''Truncates/pads a float f to n decimal places without rounding'''
@@ -186,7 +181,7 @@ class Car():
             self.velocity = -1*self.max_velocity
 
         # update pose
-        self.orientation = self.orientation.rotate_around(euclid.Vector3(0.,0.,1.),self.steering * self.velocity + 0.5 * (self.steering_rate * (time_delta**2)))
+        self.orientation = self.orientation.rotate_around(euclid.Vector3(0.,0.,1.),self.steering * self.velocity * time_delta + 0.5 * (self.steering_rate * (time_delta**2)))
         self.position += self.velocity * self.orientation * time_delta + 0.5 * (self.accel * self.orientation * (time_delta**2))
         
         # Accumulate trip metrics
@@ -274,6 +269,30 @@ class Car():
         #Test for collision between the obstacle and each of the corners/lines of the car
         #self.crashed = True
 
+    def __log_data(self, scale_inputs, scale_outputs):
+        # Scale the data to values between -1 and 1. append to list with one row per time step
+        current_data = []
+        #Inputs
+        if scale_inputs:
+            for s_range in self.sensor_ranges:
+                current_data.append(self.__truncate(self.__translate(s_range, 0.0, self.max_sensor_length, 0.0, 1.0),2))
+
+            current_data.append(self.__truncate(self.__translate(self.velocity, 0.0, self.max_velocity, 0.0, 1.0),2))
+        else:
+            for s_range in self.sensor_ranges:
+                current_data.append(self.__truncate(s_range,2))
+
+            current_data.append(self.__truncate(self.velocity,2))
+
+        if scale_outputs:
+            current_data.append(self.__truncate(self.__translate(self.accel, -1* self.max_accel, self.max_accel, -1.0, 1.0),2))
+            current_data.append(self.__truncate(self.__translate(self.steering, -1* self.max_steering, self.max_steering, -1.0, 1.0),2))
+        else:
+        #Outputs
+            current_data.append(self.__truncate(self.accel,2))
+            current_data.append(self.__truncate(self.steering,2))
+
+        self.data_log.append(current_data)
     
     def __get_sensor_vectors(self, ray_lengths):
         angle = math.pi / (self.num_sensors+1)
@@ -287,6 +306,7 @@ class Car():
             vectors.append((p1,p2)) 
             count +=1
         return vectors
+
 
     def __get_line_intersection(self, p1, p2, p3, p4):
         try:

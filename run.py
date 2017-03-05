@@ -30,16 +30,22 @@ car_x = 1000.0
 car_y = 80.0
 
 #control_option = 'training'
-control_option = 'manual'
-#control_option = 'neural'
+#control_option = 'manual'
+control_option = 'neural'
+training_data = 'training_data.csv'
+
+
+initial_network = Network.load("model.json", "model.h5")
 
 while runMe:
 
     network_list = []
-    network_list.append(Network.new())
-    network_list.append(Network.load("model.json", "model.h5"))
+    network_list.append(Network(initial_network.rand_copy()))
+    network_list.append(Network(initial_network.rand_copy()))
+    network_list.append(Network(initial_network.rand_copy()))
 
     car_list = []
+    car_list.append(Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(1.,0., 0.)))
     car_list.append(Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(1.,0., 0.)))
     car_list.append(Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(1.,0., 0.)))
 
@@ -68,15 +74,17 @@ while runMe:
             if event.type == pygame.QUIT:
                 runMe = False
 
-        #Limit the framerate
-        #dtime_ms = clock.tick(fpsLimit)
-        dtime_ms = clock.tick()
-        dtime = dtime_ms/1000.0
 
 
         screen.fill((255,255,255))
 
         environment.control()
+
+        #Limit the framerate
+        dtime_ms = clock.tick(fpsLimit)
+        #dtime_ms = clock.tick()
+        dtime = dtime_ms/1000.0
+
         environment.update(dtime)
         environment.display()
 
@@ -97,13 +105,11 @@ while runMe:
 
         if environment.check_finished() == True:
             if control_option == 'training': 
-                print 'MANUAL FINISHED! Distance = ', car.dist_travelled,  ' Time = ', car.total_time, 'velocity = ', car.avg_velocity
-                #Write data set to csv
-                with open(training_data, 'a') as f:
-                    writer = csv.writer(f)
-                    for line in car.data_log:
-                        writer.writerow(line)
-                print "Training data written to file"
+                car = environment.car_list[0]
+                if car.finished:
+                    print 'MANUAL FINISHED! Distance = ', car.dist_travelled,  ' Time = ', car.total_time, 'velocity = ', car.avg_velocity
+                    car.write_data(training_data)
+
 
             #elif control_option == 'reinforcement':
                 

@@ -24,7 +24,7 @@ class Environment():
         self.control_type = control_type
         #Limits for manual control
         self.max_accel_rate = 60.0
-        self.max_steering_rate = 0.0005
+        self.max_steering_rate = 0.03
 
         self.all_complete = False #indicates if all cars have either crashed or finished
 

@@ -28,7 +28,7 @@ class Environment():
         
         self.max_dist_index = 0
         self.all_complete = False #indicates if all cars have either crashed or finished
-
+        self.display_index = 0 #The index of the car to follow on screen
         self.total_time = 0.0
 
         if len(network_list) != len(car_list):
@@ -79,9 +79,10 @@ class Environment():
         #Update the screen offset for display purposes    
         for i in range(0,len(self.car_list)):
             if self.car_list[i].crashed != True and self.car_list[i] != True:
-                self.screen_offset_vec = 0.5 * self.screen_vec - self.car_list[i].position
+                self.display_index = i
                 break
 
+        self.screen_offset_vec = 0.5 * self.screen_vec - self.car_list[self.display_index].position
         self.total_time += time_delta
 
     def display(self):
@@ -96,27 +97,31 @@ class Environment():
 
         #Display each of the cars and associated lasers offset to the locatino of the first car in the list. 
         for i in range(0,len(self.car_list)):
-            if i==0:
-                self.car_list[i].display(self.screen_handle, self.screen_offset_vec, False)
+            if i==self.display_index:
+                self.car_list[i].display(self.screen_handle, self.screen_offset_vec, True)
             else:
                 self.car_list[i].display(self.screen_handle, self.screen_offset_vec, False)
+
     def check_finished(self):
         finished = False
+        crashed_list = []
         for car in self.car_list:
+            crashed_list.append(car.crashed)
             if car.finished == True:
                 finished = True
                 break
-            if car.crashed == False and car.finished == False:
-                return False
+
+        if all(True == item for item in crashed_list):
+            finished = True
 
         if self.total_time > 60:
             finished = True
 
         if finished == True:
             #get best index
-            max_dist = 0
+            max_dist_vel = 0
             for i in range(0,len(self.car_list)):
-                if self.car_list[i].dist_travelled > max_dist:
+                if self.car_list[i].dist_travelled*self.car_list[i].avg_velocity > max_dist_vel:
                     max_dist = self.car_list[i].dist_travelled
                     self.max_dist_index = i
         return finished

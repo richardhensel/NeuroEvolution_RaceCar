@@ -4,6 +4,7 @@ from keras.layers import Dense
 from keras.models import model_from_json
 import numpy
 import random
+import copy
 import csv
 
 class Network():
@@ -74,14 +75,22 @@ class Network():
         return [prediction[0][0], prediction[0][1]]
 
     def copy(self):
-        return self.model
+        memo = {}
+        model_copy = copy.deepcopy(self.model, memo)
+        return model_copy
+
+    def rand_copy(self):
+        model_copy = self.copy()
+
+        weights_new = self.__mutate(model_copy.get_weights())
+
+        model_copy.set_weights(weights_new)
+        return model_copy
 
     def rand_mod(self):
         #model_copy = self.copy()
 
         weights_new = self.__mutate(self.model.get_weights())
-        #for i in range(0,len(weights_new)): 
-        #    weights_new[i] = self.__mutate(weights_new[i])
 
         self.model.set_weights(weights_new)
         #return weights_new
@@ -90,8 +99,8 @@ class Network():
     def __mutate(self, weights):
         for xi in range(len(weights)):
             for yi in range(len(weights[xi])):
-                if random.uniform(0, 1) > 0.9:
-                    change = random.uniform(-0.05,0.05)
+                if random.uniform(0, 1) > 0.8:
+                    change = random.uniform(-0.025,0.025)
                     weights[xi][yi] += change
         return weights
 

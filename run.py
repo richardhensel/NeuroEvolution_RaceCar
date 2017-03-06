@@ -36,7 +36,7 @@ control_option = 'reinforcement'
 training_data = 'training_data.csv'
 generation_file = 'generation.csv'
 
-num_cars = 10
+num_cars = 15
 
 def get_generation(gen_file):
     generation = 0
@@ -68,15 +68,18 @@ while runMe:
     else:
         direction = -1.0
 
+    model_file = 'model/model.json'
+    weights_file = 'model/weights_gen'+str(generation-1)+'.h5'
+    #initial_network = Network.load(model_file, weights_file)
+
     network_list = []
     car_list = []
     for i in range(num_cars):
-        model_file = 'model/model.json'
-        weights_file = 'model/weights_gen'+str(generation-1)+'.h5'
     
         rand_network = Network.load(model_file, weights_file)
         rand_network.rand_mod() 
         network_list.append(rand_network)
+       # network_list.append(Network(initial_network.rand_copy()))
 
         car_list.append(Car(euclid.Vector3(car_x, car_y, 0.), euclid.Vector3(direction,0., 0.)))
     for car in car_list:

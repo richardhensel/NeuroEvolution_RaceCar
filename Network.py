@@ -1,4 +1,5 @@
 from keras.models import Sequential
+from keras.models import Model
 from keras.layers import Dense
 
 from keras.models import model_from_json
@@ -42,6 +43,13 @@ class Network():
 
         return cls(model)
 
+    #Load model from config and weights
+    @classmethod
+    def from_config_weights(cls, config, weights):
+        model = Sequential.from_config(config)
+        model.set_weights(weights)
+        return cls(model)
+
     def save(self, model_file, weights_file):
         # serialize model to JSON
         model_json = self.model.to_json()
@@ -74,33 +82,27 @@ class Network():
         #This needs to be generalized to accept any number of outputs
         return [prediction[0][0], prediction[0][1]]
 
-    def copy(self):
-        memo = {}
-        model_copy = copy.deepcopy(self.model, memo)
-        return model_copy
+    #Return the config and weights
+    def get_config_weights(self):
+        return copy.copy(self.model.get_config()), copy.copy(self.model.get_weights())
 
-    def rand_copy(self):
-        model_copy = self.copy()
+    #Return the config and randomly adjusted weights
+    def rand_config_weights(self):
+        weights = self.model.get_weights()
+        weights_new = self.__mutate(weights)
+        return self.model.get_config(), weights_new
 
-        weights_new = self.__mutate(model_copy.get_weights())
-
-        model_copy.set_weights(weights_new)
-        return model_copy
-
+    # Randomly adjust the weights of the model stored in this class
     def rand_mod(self):
-        #model_copy = self.copy()
-
         weights_new = self.__mutate(self.model.get_weights())
 
         self.model.set_weights(weights_new)
-        #return weights_new
-
     
     def __mutate(self, weights):
         for xi in range(len(weights)):
             for yi in range(len(weights[xi])):
-                if random.uniform(0, 1) > 0.8:
-                    change = random.uniform(-0.025,0.025)
+                if random.uniform(0, 1) > 0.95:
+                    change = random.gauss(0, 0.02)
                     weights[xi][yi] += change
         return weights
 

@@ -99,8 +99,8 @@ class Network():
     def __mutate(self, weights):
         for xi in range(len(weights)):
             for yi in range(len(weights[xi])):
-                if random.uniform(0, 1) > 0.8:
-                    change = random.uniform(-0.025,0.025)
+                if random.uniform(0, 1) > 0.95:
+                    change = random.gauss(0, 0.02)
                     weights[xi][yi] += change
         return weights
 

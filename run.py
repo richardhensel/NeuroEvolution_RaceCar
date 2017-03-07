@@ -36,7 +36,7 @@ control_option = 'reinforcement'
 training_data = 'training_data.csv'
 generation_file = 'generation.csv'
 
-num_cars = 15
+num_cars = 20
 
 def get_generation(gen_file):
     generation = 0
@@ -55,18 +55,20 @@ def set_generation(gen_file, generation):
         writer.writerow([generation])
 
 
-while runMe:
+#while runMe:
+for count in range(10):
     #load the generation number
     if control_option == 'reinforcement':
         generation = get_generation(generation_file) 
     else:
         generation = 1
 
-    dirn = random.randint(0,1)
-    if  dirn == 1:
-        direction = 1.0
-    else:
-        direction = -1.0
+   # dirn = random.randint(0,1)
+   # if  dirn == 1:
+   #     direction = 1.0
+   # else:
+   #     direction = -1.0
+    direction = 1.0
 
     model_file = 'model/model.json'
     weights_file = 'model/weights_gen'+str(generation-1)+'.h5'

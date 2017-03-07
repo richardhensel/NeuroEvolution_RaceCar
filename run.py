@@ -55,19 +55,20 @@ def set_generation(gen_file, generation):
         writer.writerow([generation])
 
 
-while runMe:
-
+#while runMe:
+for count in range(10):
     #load the generation number
     if control_option == 'reinforcement':
         generation = get_generation(generation_file)+1 #increment the generation by 1 
     else:
         generation = 0
 
-    dirn = random.randint(0,1)
-    if  dirn == 1:
-        direction = 1.0
-    else:
-        direction = -1.0
+   # dirn = random.randint(0,1)
+   # if  dirn == 1:
+   #     direction = 1.0
+   # else:
+   #     direction = -1.0
+    direction = 1.0
 
     model_file = 'model/model.json'
     weights_file = 'model/weights_gen'+str(generation)+'.h5'

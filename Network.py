@@ -99,10 +99,12 @@ class Network():
         self.model.set_weights(weights_new)
     
     def __mutate(self, weights):
+        change_chance = random.uniform(0,1)
         for xi in range(len(weights)):
             for yi in range(len(weights[xi])):
-                if random.uniform(0, 1) > 0.95:
-                    change = random.gauss(0, 0.02)
+                #if random.uniform(0, 1) > 0.3:
+                if random.uniform(0, 1) > change_chance:
+                    change = random.gauss(0, 0.000001)
                     weights[xi][yi] += change
         return weights
 

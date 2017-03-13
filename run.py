@@ -41,7 +41,7 @@ control_option = 'reinforcement'
 training_data = 'training_data.csv'
 generation_file = 'generation.csv'
 
-num_cars = 5
+num_cars = 20
 obstacles = [left_barrier,right_barrier]
 
 

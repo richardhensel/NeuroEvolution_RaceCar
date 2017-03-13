@@ -22,7 +22,7 @@ class Network():
     @classmethod
     def new(cls):
         model = Sequential()
-        model.add(Dense(13, input_dim=9, init='uniform', activation='relu'))
+        model.add(Dense(13, input_dim=15, init='uniform', activation='relu'))
         model.add(Dense(13, init='uniform', activation='relu'))
         model.add(Dense(13, init='uniform', activation='relu'))
         model.add(Dense(13, init='uniform', activation='relu'))
@@ -68,8 +68,8 @@ class Network():
         numpy.random.shuffle(dataset)
 
         # split into input (X) and output (Y) variables
-        X = dataset[:,0:9]
-        Y = dataset[:,9:]
+        X = dataset[:,0:15]
+        Y = dataset[:,15:]
 
         # Fit the model
         self.model.fit(X, Y, nb_epoch=epoch, batch_size=batch,  verbose=2)
@@ -104,7 +104,7 @@ class Network():
             for yi in range(len(weights[xi])):
                 #if random.uniform(0, 1) > 0.3:
                 if random.uniform(0, 1) > change_chance:
-                    change = random.gauss(0, 0.000001)
+                    change = random.gauss(0, 0.01)
                     weights[xi][yi] += change
         return weights
 

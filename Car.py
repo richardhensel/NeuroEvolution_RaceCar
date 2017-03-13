@@ -26,7 +26,7 @@ class Car():
         #self.max_velocity = 400.0
         self.max_accel = 100.0     
         #self.max_steering = 0.00015 #For orientation not dependant on dtime.
-        self.max_steering = 0.009 #Works well for manual control
+        self.max_steering = 0.006 #Works well for manual control
 
         #Drag parameters
         self.steering_drag = 0.9
@@ -50,7 +50,7 @@ class Car():
         #Define the sensor array
         self.sensor_origin_dist = 0.5
         self.max_sensor_length = 500.0
-        self.num_sensors = 8
+        self.num_sensors = 15
         self.sensor_ranges = [self.max_sensor_length] * self.num_sensors
 
         self.screen_offset_vec = euclid.Vector3(0.0, 0.0, 0.0)
@@ -66,7 +66,7 @@ class Car():
         #if self.velocity>new_max:
         #    inputs.append(self.__truncate(new_max,2))
         #else:
-        inputs.append(self.__truncate(self.velocity,2))
+        #inputs.append(self.__truncate(self.velocity,2))
         return inputs 
 
     def control_scaled(self, accel_scaled, steer_scaled):
@@ -293,13 +293,12 @@ class Car():
             for s_range in self.sensor_ranges:
                 current_data.append(self.__truncate(self.__translate(s_range, 0.0, self.max_sensor_length, 0.0, 1.0),2))
 
-            current_data.append(self.__truncate(self.__translate(self.velocity, 0.0, self.max_velocity, 0.0, 1.0),2))
+            #current_data.append(self.__truncate(self.__translate(self.velocity, 0.0, self.max_velocity, 0.0, 1.0),2))
         else:
             for s_range in self.sensor_ranges:
                 current_data.append(self.__truncate(s_range,2))
 
-            current_data.append(self.__truncate(self.velocity,2))
-
+            #current_data.append(self.__truncate(self.velocity,2))
         #Outputs
         if scale_outputs:
             current_data.append(self.__truncate(self.__translate(self.accel, -1* self.max_accel, self.max_accel, -1.0, 1.0),2))
@@ -309,20 +308,19 @@ class Car():
             current_data.append(self.__truncate(self.steering,2))
 
         self.data_log.append(current_data)
-    
+
     def __get_sensor_vectors(self, ray_lengths):
-        angle = math.pi / (self.num_sensors+1)
+        angle = math.pi / (self.num_sensors-1)
         vectors = []
-        count = 1
+        count = 0
         for i in range(0,self.num_sensors):
             p1 = self.sensor_origin
             # sensor vector is count*angle radians from the right of the car, with an origin at sensor origin and a length of sensor_length 
             p2 = self.sensor_origin + self.orientation.rotate_around(euclid.Vector3(0.,0.,1.), 0.5*math.pi - count * angle) * ray_lengths[i]
 
-            vectors.append((p1,p2)) 
+            vectors.append((p1,p2))
             count +=1
         return vectors
-
 
     def __get_line_intersection(self, p1, p2, p3, p4):
         try:

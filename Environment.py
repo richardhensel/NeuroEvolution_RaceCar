@@ -24,7 +24,7 @@ class Environment():
 
         #Limits for manual control
         self.max_accel_rate = 60.0
-        self.max_steering_rate = 0.03
+        self.max_steering_rate = 0.045
         
         self.max_fitness_index = 0
         self.max_fitness = 0.0
@@ -46,7 +46,6 @@ class Environment():
     def control(self):
         # the first car in the list is controlled manually, others by nn
         if self.control_type == 'manual' or self.control_type == 'training':
-            print 'manual'
             if self.display_option==True:
                 keys = pygame.key.get_pressed()
                 if (keys[pygame.K_a] ==True and keys[pygame.K_f] ==True) or (keys[pygame.K_a] ==False and keys[pygame.K_f] ==False):
@@ -81,12 +80,12 @@ class Environment():
                     self.car_list[i].control_scaled(prediction[0], prediction[1])
 
         #Quits the game
-            if self.display_option==True:
-                keys = pygame.key.get_pressed()
-                if keys[pygame.K_x] == True:
-                    self.quit = True
-                elif keys[pygame.K_c] == True:
-                    self.all_finished = True
+        if self.display_option==True:
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_x] == True:
+                self.quit = True
+            elif keys[pygame.K_c] == True:
+                self.all_finished = True
 
     def update(self, time_delta):
         for i in range(0,len(self.car_list)):

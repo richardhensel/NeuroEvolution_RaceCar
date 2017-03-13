@@ -41,7 +41,7 @@ control_option = 'reinforcement'
 training_data = 'training_data.csv'
 generation_file = 'generation.csv'
 
-num_cars = 20
+num_cars = 5
 obstacles = [left_barrier,right_barrier]
 
 
@@ -93,9 +93,8 @@ while runMe:
 
     finish_line = [(car_x[x_index]-10.0, car_y[y_index] - 100), (car_x[x_index]-10.0, car_y[y_index] + 100)]
 
-
-    model_file = 'model/model.json'
-    weights_file = 'model/weights_gen'+str(prev_generation)+'.h5'
+    model_file = 'model2/model.json'
+    weights_file = 'model2/weights_gen'+str(prev_generation)+'.h5'
     initial_network = Network.load(model_file, weights_file)
     #initial_network.train(training_data, epoch=1, batch=3)
 
@@ -103,10 +102,12 @@ while runMe:
     car_list = []
     config,weights = initial_network.get_config_weights()
     network_list.append(Network.from_config_weights(config, weights))
+    #network_list.append(Network.new())
     car_list.append(Car([car_x[x_index], car_y[y_index]], direction_list[dirn_index], 0.0))
     for count in range(1,num_cars):
         config, weights = initial_network.rand_config_weights()
         network_list.append(Network.from_config_weights(config, weights))
+        #network_list.append(Network.new())
 
         car_list.append(Car([car_x[x_index], car_y[y_index]], direction_list[dirn_index], 0.0))
 
@@ -114,7 +115,7 @@ while runMe:
         car.control_unscaled(60.0,0.0)
 
     environment = Environment(network_list, car_list, obstacles, finish_line, control_option, display)
-    print 'Start. Generation ', generation, ' current fitness = ', fitness_list[dirn_index]
+    #print 'Start. Generation ', generation, ' current fitness = ', fitness_list[dirn_index]
     while runMe == True:
 
         environment.control()
@@ -158,10 +159,11 @@ while runMe:
                     best_car = environment.max_fitness_car
                     best_car.write_data(training_data, False)
 
-                    weights_file = 'model/weights_gen'+str(generation)+'.h5'
+                    weights_file = 'model2/weights_gen'+str(generation)+'.h5'
                     best_model.save_weights(weights_file)
 
                     #Set the generation file for next loop
+                    print generation
                     set_generation(generation_file, generation, int(dirn_index), fitness_list)
                     #get the most fit car
                     #save the model weights to file
